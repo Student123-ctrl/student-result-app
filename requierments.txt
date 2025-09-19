@@ -1,1 +1,4 @@
-speedtest
+streamlit
+pandas
+openpyxl
+xlsxwriter
