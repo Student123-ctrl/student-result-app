@@ -3,15 +3,6 @@ import pandas as pd
 import os
 
 # --------------------------
-# Helper: safe image loader
-# --------------------------
-def safe_image(path, **kwargs):
-    if os.path.exists(path):
-        st.image(path, **kwargs)
-    else:
-        st.warning(f"⚠️ Image not found: {path}")
-
-# --------------------------
 # Load custom CSS
 # --------------------------
 def load_css(file_name):
@@ -19,7 +10,8 @@ def load_css(file_name):
         with open(file_name) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-load_css(os.path.join("assets", "style.css"))
+css_path = os.path.join("assets", "style.css")
+load_css(css_path)
 
 # --------------------------
 # Sidebar Navigation
@@ -58,7 +50,9 @@ os.makedirs("data", exist_ok=True)
 # Home Page
 # --------------------------
 if page == "Home":
-    safe_image(os.path.join("images", "home.png"), width=100)
+    home_img_path = os.path.join("assets", "home.png")
+    if os.path.exists(home_img_path):
+        st.image(home_img_path, width=100)
     st.title("🏫 Welcome to Student Result Management System")
     st.write("Manage students, record marks, and generate result reports easily!")
 
@@ -66,7 +60,9 @@ if page == "Home":
 # Add Student Page
 # --------------------------
 elif page == "Add Student":
-    safe_image(os.path.join("images", "add.png"), width=100)
+    add_img_path = os.path.join("assets", "add.png")
+    if os.path.exists(add_img_path):
+        st.image(add_img_path, width=100)
     st.header("➕ Add New Student")
 
     with st.form("student_form"):
@@ -74,9 +70,7 @@ elif page == "Add Student":
         roll = st.text_input("Roll Number")
         marks = {}
         for subject, max_marks in SUBJECTS.items():
-            marks[subject] = st.number_input(
-                f"{subject} Marks (out of {max_marks})", min_value=0, max_value=max_marks
-            )
+            marks[subject] = st.number_input(f"{subject} Marks (out of {max_marks})", min_value=0, max_value=max_marks)
 
         submitted = st.form_submit_button("Add Student")
 
@@ -111,11 +105,28 @@ elif page == "Add Student":
 # Results Page
 # --------------------------
 elif page == "Results":
-    st.header("📊 All Students Results")
-    uploaded_file = st.file_uploader("📂 Upload Student Data (CSV/Excel)", type=["csv","xlsx"])
+    results_img_path = os.path.join("assets", "results.png")
+    student_icon_path = os.path.join("assets", "student_icon.png")
 
+    if os.path.exists(results_img_path):
+        st.image(results_img_path, width=100)
+    st.header("📊 All Students Results")
+
+    # Clear all records button
+    if st.button("🗑️ Clear All Records"):
+        if os.path.exists(DATA_FILE):
+            os.remove(DATA_FILE)
+            st.success("✅ All old student records have been deleted!")
+        else:
+            st.info("ℹ️ No records found to delete.")
+
+    if os.path.exists(student_icon_path):
+        st.image(student_icon_path, width=80)
+
+    uploaded_file = st.file_uploader("📂 Upload Student Data (CSV/Excel)", type=["csv", "xlsx"])
     df = None
-    if uploaded_file:
+
+    if uploaded_file is not None:
         try:
             uploaded_file.seek(0)
             if uploaded_file.name.endswith(".csv"):
@@ -129,41 +140,48 @@ elif page == "Results":
         df = pd.read_csv(DATA_FILE)
 
     if df is not None and not df.empty:
-        for _, student in df.iterrows():
-            st.subheader(f"🧑 {student['Name']}")
-            safe_image(os.path.join("images", "student_icon.png"), width=80)
+        # Display name at top
+        st.subheader(f"Student Records ({len(df)} students)")
 
-            rows = []
-            total_obtained = 0
-            total_max = 0
+        # Reshape data: one row per subject
+        rows = []
+        total_obtained = 0
+        total_max = 0
+        for _, row in df.iterrows():
             for subject, max_marks in SUBJECTS.items():
-                obtained = student[subject]
+                obtained = row[subject]
                 total_obtained += obtained
                 total_max += max_marks
-                perc = round((obtained / max_marks) * 100, 2)
-                grade = calculate_grade(perc)
+                percentage = round((obtained / max_marks) * 100, 2)
+                grade = calculate_grade(percentage)
                 rows.append({
+                    "Name": row["Name"],
+                    "Roll No": row["Roll No"],
                     "Subject": subject,
-                    "Marks Obtained": str(obtained),
+                    "Marks": obtained,
                     "Total Marks": f"{obtained}/{max_marks}",
-                    "Percentage": f"{perc}%",
+                    "Percentage": f"{percentage}%",
                     "Grade": grade
                 })
 
-            # Overall row
-            overall_percentage = round((total_obtained / total_max) * 100, 2)
-            overall_grade = calculate_grade(overall_percentage)
-            rows.append({
-                "Subject": "Overall",
-                "Marks Obtained": str(total_obtained),
-                "Total Marks": f"{total_obtained}/{total_max}",
-                "Percentage": f"{overall_percentage}%",
-                "Grade": overall_grade
-            })
+        df_results = pd.DataFrame(rows)
 
-            df_results = pd.DataFrame(rows).astype(str)
-            st.dataframe(df_results, use_container_width=True)
+        # Add overall summary at the end
+        overall_percentage = round((total_obtained / total_max) * 100, 2)
+        overall_grade = calculate_grade(overall_percentage)
+        df_overall = pd.DataFrame([{
+            "Name": "Overall",
+            "Roll No": "",
+            "Subject": "",
+            "Marks": total_obtained,
+            "Total Marks": f"{total_obtained}/{total_max}",
+            "Percentage": f"{overall_percentage}%",
+            "Grade": overall_grade
+        }])
 
+        df_final = pd.concat([df_results, df_overall], ignore_index=True)
+
+        st.dataframe(df_final, use_container_width=True)
     else:
         st.info("ℹ️ No students added yet. Please go to 'Add Student' or upload data.")
 
@@ -171,7 +189,9 @@ elif page == "Results":
 # About Page
 # --------------------------
 elif page == "About":
-    safe_image(os.path.join("images", "about.png"), width=100)
+    about_img_path = os.path.join("assets", "about.png")
+    if os.path.exists(about_img_path):
+        st.image(about_img_path, width=100)
     st.header("ℹ️ About")
     st.write("This Student Result Management App is built with **Streamlit**.")
     st.write("Developed to manage marks, calculate grades, and display results in a clean format.")
