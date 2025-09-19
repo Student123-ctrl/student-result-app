@@ -1,190 +1,173 @@
-import streamlit as st
-from uuid import uuid4
-import pandas as pd
-from io import BytesIO
 import os
+import csv
+import pandas as pd
+import streamlit as st
 
-# ---------------------------
-# App Config
-# ---------------------------
-st.set_page_config(page_title="Student Result Management", page_icon="🎓", layout="centered")
+# =========================
+# Subjects List
+# =========================
+SUBJECTS = ["Physics", "Chemistry", "Math", "English", "Computer"]
 
-# ---------------------------
-# Load CSS safely
-# ---------------------------
-def load_css(file_name):
-    if os.path.exists(file_name):
-        with open(file_name) as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    else:
-        st.warning(f"⚠️ CSS file not found: {file_name}")
-
-load_css("assets/style.css")
-
-# ---------------------------
-# Assets
-# ---------------------------
-LOGO_URL = "logo.png"               # local logo
-STUDENT_ICON = "assets/student_icon.png"  # student icon
-
-# ---------------------------
-# Sidebar
-# ---------------------------
-if os.path.exists(LOGO_URL):
-    st.sidebar.image(LOGO_URL, width=120)
-st.sidebar.title("🎓 Menu")
-page = st.sidebar.radio("Go to", ["Home", "Add Student", "Results", "About"])
-
-# ---------------------------
-# Subjects & Grade Function
-# ---------------------------
-subjects = ["Physics", "Computer", "Math", "English", "Chemistry"]
-
-def get_grade(percentage: float) -> str:
-    if percentage > 90:
+# =========================
+# Grading Function
+# =========================
+def get_grade(percentage):
+    if percentage >= 90:
         return "A+"
-    elif percentage > 81:
+    elif percentage >= 80:
         return "A"
-    elif percentage >= 71:
+    elif percentage >= 70:
         return "B+"
-    elif percentage >= 61:
+    elif percentage >= 60:
         return "B"
-    elif percentage >= 51:
-        return "C+"
-    elif percentage >= 41:
+    elif percentage >= 50:
         return "C"
-    elif percentage >= 31:
-        return "D+"
-    elif percentage >= 21:
-        return "E+"
+    elif percentage >= 40:
+        return "D"
     else:
         return "Fail"
 
-# ---------------------------
-# Session Storage
-# ---------------------------
-if "students" not in st.session_state:
-    st.session_state.students = {}
+# =========================
+# Utility function to load CSS
+# =========================
+def load_css(file_name):
+    file_path = os.path.join(os.path.dirname(__file__), file_name)
+    if os.path.exists(file_path):
+        with open(file_path) as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# ---------------------------
+# Load custom CSS
+load_css("assets/style.css")
+
+# =========================
+# Sidebar Menu
+# =========================
+st.sidebar.image("logo.png", use_column_width=True)
+st.sidebar.title("🎓 Menu")
+menu = st.sidebar.radio("Go to", ["Home", "Add Student", "Results", "About"])
+
+# =========================
+# Session State Storage
+# =========================
+if "students" not in st.session_state:
+    st.session_state["students"] = []
+
+# =========================
 # Pages
-# ---------------------------
-if page == "Home":
-    st.image(LOGO_URL, width=120)
-    st.title("Welcome to Student Result Management")
-    st.markdown(
+# =========================
+
+# --- Home Page ---
+if menu == "Home":
+    st.title("🏫 Welcome to Student Result App")
+    st.write(
         """
-        ✅ Add unlimited students  
-        ✅ Validate marks (0–100)  
-        ✅ Calculate percentage & grades  
-        ✅ View results in expandable cards  
-        ✅ Download all results as Excel  
-        ✅ Upload CSV/Excel to import students
+        This app helps you manage student records.  
+        👉 You can:
+        - Add students manually  
+        - Upload CSV/Excel files with student data  
+        - View results with **Grades, Percentage, and Total Marks**  
         """
     )
 
-elif page == "Add Student":
-    st.header("➕ Add Student Marks")
-    form_id = uuid4().hex[:8]
+# --- Add Student Page ---
+elif menu == "Add Student":
+    st.title("➕ Add Student")
 
-    with st.form(f"student_form_{form_id}", clear_on_submit=True):
-        name = st.text_input("Student Name", key=f"name_{form_id}")
-        marks_inputs = {}
-        for subject in subjects:
-            marks = st.number_input(
-                f"{subject} marks (0–100)",
-                min_value=-10000, max_value=10000, step=1,
-                key=f"{form_id}_{subject}"
+    with st.form("student_form"):
+        name = st.text_input("Student Name")
+        roll = st.text_input("Roll Number")
+
+        marks = {}
+        for subject in SUBJECTS:
+            marks[subject] = st.number_input(
+                f"{subject} Marks", min_value=0, max_value=100, step=1, key=f"{subject}_{roll}"
             )
-            marks_inputs[subject] = marks
 
         submitted = st.form_submit_button("Add Student")
 
         if submitted:
-            if not name.strip():
-                st.error("❌ Please enter the student's name.")
+            if name and roll:
+                total = sum(marks.values())
+                percentage = (total / (len(SUBJECTS) * 100)) * 100
+                grade = get_grade(percentage)
+
+                student_data = {
+                    "Name": name,
+                    "Roll": roll,
+                    **marks,
+                    "Total": total,
+                    "Percentage": round(percentage, 2),
+                    "Grade": grade,
+                }
+                st.session_state["students"].append(student_data)
+                st.success(f"✅ {name} added successfully!")
             else:
-                invalid = [s for s, m in marks_inputs.items() if m < 0 or m > 100]
-                if invalid:
-                    details = ", ".join(f"{s} ({marks_inputs[s]})" for s in invalid)
-                    st.error(f"❌ Marks must be between 0 and 100. Problem with: {details}")
-                else:
-                    # Save student into session_state
-                    st.session_state.students[name.strip()] = {s: int(m) for s, m in marks_inputs.items()}
-                    st.success(f"✅ {name.strip()} added successfully!")
+                st.error("⚠️ Please fill all fields before adding")
 
-elif page == "Results":
-    st.header("📊 All Students Results")
+    if st.session_state["students"]:
+        st.subheader("📋 Current Students")
+        st.dataframe(pd.DataFrame(st.session_state["students"]))
 
-    # Optional: Upload CSV/Excel
-    uploaded_file = st.file_uploader("📂 Upload Student Data (CSV/Excel)", type=["csv","xlsx"])
-    if uploaded_file:
-        if uploaded_file.name.endswith(".csv"):
-            df_uploaded = pd.read_csv(uploaded_file)
-        else:
-            df_uploaded = pd.read_excel(uploaded_file)
-        st.subheader("Uploaded Student Data")
-        st.dataframe(df_uploaded)
+# --- Results Page ---
+elif menu == "Results":
+    st.title("📊 All Students Results")
 
-        # Import into session state
-        for i, row in df_uploaded.iterrows():
-            name = row["Name"]
-            st.session_state.students[name] = {sub: int(row[sub]) for sub in subjects}
+    uploaded_file = st.file_uploader(
+        "📂 Upload Student Data (CSV/Excel)", type=["csv", "xlsx"]
+    )
 
-    if not st.session_state.students:
-        st.info("No students added yet. Go to 'Add Student' first or upload data.")
+    df_uploaded = None
+    if uploaded_file is not None:
+        try:
+            uploaded_file.seek(0)
+
+            if uploaded_file.name.endswith(".csv"):
+                try:
+                    # Auto-detect delimiter
+                    sample = uploaded_file.read(2048).decode("utf-8", errors="ignore")
+                    uploaded_file.seek(0)
+                    dialect = csv.Sniffer().sniff(sample)
+                    delimiter = dialect.delimiter
+                    df_uploaded = pd.read_csv(uploaded_file, delimiter=delimiter)
+                except Exception:
+                    uploaded_file.seek(0)
+                    df_uploaded = pd.read_csv(uploaded_file)  # fallback
+
+            elif uploaded_file.name.endswith(".xlsx"):
+                df_uploaded = pd.read_excel(uploaded_file)
+
+            if df_uploaded is not None:
+                # Ensure proper columns
+                if all(sub in df_uploaded.columns for sub in SUBJECTS):
+                    df_uploaded["Total"] = df_uploaded[SUBJECTS].sum(axis=1)
+                    df_uploaded["Percentage"] = (
+                        df_uploaded["Total"] / (len(SUBJECTS) * 100) * 100
+                    ).round(2)
+                    df_uploaded["Grade"] = df_uploaded["Percentage"].apply(get_grade)
+
+                st.success("✅ File uploaded successfully!")
+                st.dataframe(df_uploaded)
+
+        except Exception as e:
+            st.error(f"❌ Error reading file: {e}")
+
+    elif st.session_state["students"]:
+        st.success("📋 Showing manually added students")
+        st.dataframe(pd.DataFrame(st.session_state["students"]))
     else:
-        results_data = []
-        for name, marks_dict in st.session_state.students.items():
-            total_possible = len(subjects) * 100
-            total = sum(marks_dict.values())
-            percentage = (total / total_possible) * 100
-            grade = get_grade(percentage)
+        st.info("📌 No students added yet. Please add students or upload a file.")
 
-            with st.expander(f"{name} — {percentage:.2f}% — {grade}"):
-                st.markdown(f'<div class="result-card">', unsafe_allow_html=True)
-                if os.path.exists(STUDENT_ICON):
-                    st.image(STUDENT_ICON, width=60)
-                st.write(f"**Total:** {total}/{total_possible}")
-                st.write(f"**Percentage:** {percentage:.2f}%")
-                st.write(f"**Grade:** {grade}")
-                st.markdown("**Subject-wise marks:**")
-                for subject, marks in marks_dict.items():
-                    st.write(f"- {subject}: {marks}")
-                st.markdown("</div>", unsafe_allow_html=True)
-                st.markdown("---")
-
-            # Add to export
-            row = {"Name": name, "Total": total, "Percentage": round(percentage,2), "Grade": grade}
-            row.update(marks_dict)
-            results_data.append(row)
-
-        # Export to Excel
-        df_export = pd.DataFrame(results_data)
-        buffer = BytesIO()
-        with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-            df_export.to_excel(writer, index=False, sheet_name="Results")
-
-        st.download_button(
-            label="📥 Download Results as Excel",
-            data=buffer,
-            file_name="Student_Results.xlsx",
-            mime="application/vnd.ms-excel"
-        )
-
-elif page == "About":
-    st.header("ℹ️ About This App")
-    st.markdown(
+# --- About Page ---
+elif menu == "About":
+    st.title("ℹ️ About")
+    st.write(
         """
-        This Student Result Management System was built with **Streamlit**.  
+        This Student Result Management App was built using **Streamlit**.  
+        Features:
+        - Add students manually  
+        - Upload results via CSV or Excel  
+        - Calculates **Total Marks, Percentage, and Grade**  
 
-        ✅ Unlimited students can be added  
-        ✅ Marks validated (0–100)  
-        ✅ Results shown with percentages & grades  
-        ✅ Excel export for all students  
-        ✅ CSV/Excel import supported  
-        ✅ Blue-themed sidebar & custom CSS  
-
-        🎓 *Perfect for schools, colleges, or practice projects.*
+        👨‍💻 Developed by Muhammad
         """
     )
