@@ -166,10 +166,10 @@ elif page == "Results":
             if os.path.exists(student_icon_path):
                 st.image(student_icon_path, width=100)
 
-            # Student Info: Name, Father Name, Roll No, Session
+            # Student Info: Student Name, Father Name, Roll No, Session
             st.markdown(f"""
                 <div style="text-align:left; font-size:18px; font-weight:bold; margin-bottom:10px;">
-                    {row['Name']} <br>
+                    Student Name: {row['Name']} <br>
                     Father Name: {row['Father Name']} <br>
                     Roll No: {row['Roll No']} <br>
                     Session: 2025
