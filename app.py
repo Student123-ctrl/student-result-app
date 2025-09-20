@@ -187,7 +187,7 @@ elif page == "Results":
             df_final = pd.concat([df_student, df_overall], ignore_index=True)
 
             # --------------------------
-            # Display dark and bold table
+            # Display dark table with black bold text in columns
             # --------------------------
             st.markdown(
                 df_final.to_html(index=False, escape=False),
@@ -198,23 +198,27 @@ elif page == "Results":
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    color: #ffffff;
                     background-color: #2b2b2b;
-                    font-weight: bold;
-                }
-                th, td {
-                    border: 1px solid #555555;
-                    padding: 8px;
-                    text-align: center;
                 }
                 th {
                     background-color: #1f1f1f;
+                    color: #ffffff;
+                    font-weight: bold;
+                    padding: 8px;
+                    text-align: center;
                 }
-                tr:nth-child(even) {
-                    background-color: #3a3a3a;
+                td {
+                    background-color: #ffffff;
+                    color: #000000;
+                    font-weight: bold;
+                    padding: 8px;
+                    text-align: center;
                 }
-                tr:hover {
-                    background-color: #505050;
+                tr:nth-child(even) td {
+                    background-color: #f0f0f0;
+                }
+                tr:hover td {
+                    background-color: #dcdcdc;
                 }
                 </style>
             """, unsafe_allow_html=True)
