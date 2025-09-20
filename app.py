@@ -124,6 +124,9 @@ elif page == "Results":
     if os.path.exists(results_img_path):
         st.image(results_img_path, width=100)
 
+    # Session info at top-left
+    st.markdown("<h4 style='text-align:left;'>Session: 2025</h4>", unsafe_allow_html=True)
+
     # Clear all records button
     if st.button("🗑️ Clear All Records"):
         if os.path.exists(DATA_FILE):
