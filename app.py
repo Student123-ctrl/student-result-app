@@ -34,6 +34,9 @@ def calculate_grade(percentage):
     else:
         return "F"
 
+def is_valid_name(name):
+    return name.replace(" ", "").isalpha()  # allow spaces in names
+
 # Subjects and max marks
 SUBJECTS = {
     "Physics": 100,
@@ -75,31 +78,36 @@ elif page == "Add Student":
         submitted = st.form_submit_button("Add Student")
 
         if submitted:
-            obtained_total = sum(marks.values())
-            max_total = sum(SUBJECTS.values())
-            percentage = round((obtained_total / max_total) * 100, 2)
-            grade = calculate_grade(percentage)
-
-            student_data = {
-                "Name": name,
-                "Roll No": roll,
-                **marks,
-                "Total Obtained": obtained_total,
-                "Total Marks": max_total,
-                "Percentage": percentage,
-                "Grade": grade
-            }
-
-            df_new = pd.DataFrame([student_data])
-
-            if os.path.exists(DATA_FILE):
-                df_old = pd.read_csv(DATA_FILE)
-                df = pd.concat([df_old, df_new], ignore_index=True)
+            if not is_valid_name(name):
+                st.error("❌ Invalid Name! Name must contain only alphabets.")
+            elif name.strip() == "":
+                st.error("❌ Name cannot be empty.")
             else:
-                df = df_new
+                obtained_total = sum(marks.values())
+                max_total = sum(SUBJECTS.values())
+                percentage = round((obtained_total / max_total) * 100, 2)
+                grade = calculate_grade(percentage)
 
-            df.to_csv(DATA_FILE, index=False)
-            st.success(f"✅ Student {name} added successfully!")
+                student_data = {
+                    "Name": name,
+                    "Roll No": roll,
+                    **marks,
+                    "Total Obtained": obtained_total,
+                    "Total Marks": max_total,
+                    "Percentage": percentage,
+                    "Grade": grade
+                }
+
+                df_new = pd.DataFrame([student_data])
+
+                if os.path.exists(DATA_FILE):
+                    df_old = pd.read_csv(DATA_FILE)
+                    df = pd.concat([df_old, df_new], ignore_index=True)
+                else:
+                    df = df_new
+
+                df.to_csv(DATA_FILE, index=False)
+                st.success(f"✅ Student {name} added successfully!")
 
 # --------------------------
 # Results Page
