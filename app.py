@@ -79,7 +79,7 @@ elif page == "Add Student":
 
     with st.form("student_form"):
         name = st.text_input("Student Name")
-        father_name = st.text_input("Father Name")   # father name input
+        father_name = st.text_input("Father Name")
         roll = st.text_input("Roll Number")
         marks = {}
         for subject, max_marks in SUBJECTS.items():
@@ -92,17 +92,16 @@ elif page == "Add Student":
                 st.error("❌ Invalid Name! Name must contain only alphabets and spaces.")
             elif name.strip() == "":
                 st.error("❌ Name cannot be empty.")
-            elif not is_valid_name(father_name):
-                st.error("❌ Invalid Father Name! Must contain only alphabets and spaces.")
-            elif father_name.strip() == "":
-                st.error("❌ Father Name cannot be empty.")
             elif not is_valid_roll(roll):
                 st.error("❌ Invalid Roll Number! Roll number must be a positive integer.")
+            elif father_name.strip() == "":
+                st.error("❌ Father Name cannot be empty.")
             else:
                 obtained_total = sum(marks.values())
                 max_total = sum(SUBJECTS.values())
                 percentage = round((obtained_total / max_total) * 100, 2)
                 grade = calculate_grade(percentage)
+                status = calculate_status(grade)
 
                 student_data = {
                     "Name": name,
@@ -112,7 +111,8 @@ elif page == "Add Student":
                     "Total Obtained": obtained_total,
                     "Total Marks": max_total,
                     "Percentage": percentage,
-                    "Grade": grade
+                    "Grade": grade,
+                    "Status": status
                 }
 
                 df_new = pd.DataFrame([student_data])
@@ -162,19 +162,21 @@ elif page == "Results":
 
     if df is not None and not df.empty:
         for _, row in df.iterrows():
+            # Student Image
             if os.path.exists(student_icon_path):
-                st.image(student_icon_path, width=80)
+                st.image(student_icon_path, width=100)
 
-            # Header info: Name, Father Name, Roll No, Session
+            # Student Info: Name, Father Name, Roll No, Session
             st.markdown(f"""
                 <div style="text-align:left; font-size:18px; font-weight:bold; margin-bottom:10px;">
-                    📌 {row['Name']} <br>
+                    {row['Name']} <br>
                     Father Name: {row['Father Name']} <br>
                     Roll No: {row['Roll No']} <br>
                     Session: 2025
                 </div>
             """, unsafe_allow_html=True)
 
+            # Subject-wise details
             student_rows = []
             total_obtained = 0
             total_max = 0
@@ -211,7 +213,9 @@ elif page == "Results":
 
             df_final = pd.concat([df_student, df_overall], ignore_index=True)
 
-            # Display dark table
+            # --------------------------
+            # Display dark table with black bold text in columns
+            # --------------------------
             st.markdown(
                 df_final.to_html(index=False, escape=False),
                 unsafe_allow_html=True
@@ -259,4 +263,3 @@ elif page == "About":
     st.header("ℹ️ About")
     st.write("This Student Result Management App is built with **Streamlit**.")
     st.write("Developed to manage marks, calculate grades, and display results in a clean format.")
-    st.write("Developed by 'Muhammad Bin Maqsood'")
