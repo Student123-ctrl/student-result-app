@@ -118,11 +118,6 @@ elif page == "Add Student":
 # Results Page
 # --------------------------
 elif page == "Results":
-    # --------------------------
-    # Display Session at top-left
-    # --------------------------
-    st.markdown("<h4 style='text-align:left; margin-top:0;'>Session: 2025</h4>", unsafe_allow_html=True)
-
     results_img_path = os.path.join("images", "results.png")
     student_icon_path = os.path.join("images", "student_icon.png")
 
@@ -155,7 +150,17 @@ elif page == "Results":
 
     if df is not None and not df.empty:
         for _, row in df.iterrows():
-            st.subheader(f"📌 {row['Name']} (Roll No: {row['Roll No']})")
+            # Name + Roll Number (left) and Session (right)
+            st.markdown(
+                f"""
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4>📌 {row['Name']} (Roll No: {row['Roll No']})</h4>
+                    <h4 style="margin:0;">Session: 2025</h4>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
             if os.path.exists(student_icon_path):
                 st.image(student_icon_path, width=80)
 
@@ -191,9 +196,7 @@ elif page == "Results":
 
             df_final = pd.concat([df_student, df_overall], ignore_index=True)
 
-            # --------------------------
-            # Display dark table with black bold text in columns
-            # --------------------------
+            # Dark styled result table
             st.markdown(
                 df_final.to_html(index=False, escape=False),
                 unsafe_allow_html=True
