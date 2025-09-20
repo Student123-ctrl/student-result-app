@@ -35,7 +35,10 @@ def calculate_grade(percentage):
         return "F"
 
 def is_valid_name(name):
-    return name.replace(" ", "").isalpha()  # allow spaces in names
+    return name.replace(" ", "").isalpha()  # only letters and spaces
+
+def is_valid_roll(roll):
+    return roll.isdigit() and int(roll) > 0  # must be positive integer
 
 # Subjects and max marks
 SUBJECTS = {
@@ -78,10 +81,13 @@ elif page == "Add Student":
         submitted = st.form_submit_button("Add Student")
 
         if submitted:
+            # Validation
             if not is_valid_name(name):
-                st.error("❌ Invalid Name! Name must contain only alphabets.")
+                st.error("❌ Invalid Name! Name must contain only alphabets and spaces.")
             elif name.strip() == "":
                 st.error("❌ Name cannot be empty.")
+            elif not is_valid_roll(roll):
+                st.error("❌ Invalid Roll Number! Roll number must be a positive integer.")
             else:
                 obtained_total = sum(marks.values())
                 max_total = sum(SUBJECTS.values())
@@ -90,7 +96,7 @@ elif page == "Add Student":
 
                 student_data = {
                     "Name": name,
-                    "Roll No": roll,
+                    "Roll No": int(roll),
                     **marks,
                     "Total Obtained": obtained_total,
                     "Total Marks": max_total,
