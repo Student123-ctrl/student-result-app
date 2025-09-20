@@ -35,10 +35,10 @@ def calculate_grade(percentage):
         return "F"
 
 def is_valid_name(name):
-    return name.replace(" ", "").isalpha()  # only letters and spaces
+    return name.replace(" ", "").isalpha()
 
 def is_valid_roll(roll):
-    return roll.isdigit() and int(roll) > 0  # must be positive integer
+    return roll.isdigit() and int(roll) > 0
 
 # Subjects and max marks
 SUBJECTS = {
@@ -81,7 +81,6 @@ elif page == "Add Student":
         submitted = st.form_submit_button("Add Student")
 
         if submitted:
-            # Validation
             if not is_valid_name(name):
                 st.error("❌ Invalid Name! Name must contain only alphabets and spaces.")
             elif name.strip() == "":
@@ -150,13 +149,11 @@ elif page == "Results":
         df = pd.read_csv(DATA_FILE)
 
     if df is not None and not df.empty:
-        # Show each student individually
         for _, row in df.iterrows():
             st.subheader(f"📌 {row['Name']} (Roll No: {row['Roll No']})")
             if os.path.exists(student_icon_path):
                 st.image(student_icon_path, width=80)
 
-            # Prepare results table
             student_rows = []
             total_obtained = 0
             total_max = 0
@@ -188,7 +185,40 @@ elif page == "Results":
             }])
 
             df_final = pd.concat([df_student, df_overall], ignore_index=True)
-            st.dataframe(df_final, use_container_width=True)
+
+            # --------------------------
+            # Display dark and bold table
+            # --------------------------
+            st.markdown(
+                df_final.to_html(index=False, escape=False),
+                unsafe_allow_html=True
+            )
+            st.markdown("""
+                <style>
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    color: #ffffff;
+                    background-color: #2b2b2b;
+                    font-weight: bold;
+                }
+                th, td {
+                    border: 1px solid #555555;
+                    padding: 8px;
+                    text-align: center;
+                }
+                th {
+                    background-color: #1f1f1f;
+                }
+                tr:nth-child(even) {
+                    background-color: #3a3a3a;
+                }
+                tr:hover {
+                    background-color: #505050;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+
     else:
         st.info("ℹ️ No students added yet. Please go to 'Add Student' or upload data.")
 
