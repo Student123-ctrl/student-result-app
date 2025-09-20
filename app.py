@@ -34,6 +34,12 @@ def calculate_grade(percentage):
     else:
         return "F"
 
+def calculate_status(grade):
+    if grade in ["A+", "A", "B", "C"]:
+        return "Pass"
+    else:
+        return "Fail"
+
 def is_valid_name(name):
     return name.replace(" ", "").isalpha()
 
@@ -173,12 +179,14 @@ elif page == "Results":
                 total_max += max_marks
                 percentage = round((obtained / max_marks) * 100, 2)
                 grade = calculate_grade(percentage)
+                status = calculate_status(grade)
                 student_rows.append({
                     "Subject": subject,
                     "Marks": obtained,
                     "Total Marks": f"{obtained}/{max_marks}",
                     "Percentage": f"{percentage}%",
-                    "Grade": grade
+                    "Grade": grade,
+                    "Status": status
                 })
 
             df_student = pd.DataFrame(student_rows)
@@ -186,12 +194,14 @@ elif page == "Results":
             # Add overall row
             overall_percentage = round((total_obtained / total_max) * 100, 2)
             overall_grade = calculate_grade(overall_percentage)
+            overall_status = calculate_status(overall_grade)
             df_overall = pd.DataFrame([{
                 "Subject": "Overall",
                 "Marks": total_obtained,
                 "Total Marks": f"{total_obtained}/{total_max}",
                 "Percentage": f"{overall_percentage}%",
-                "Grade": overall_grade
+                "Grade": overall_grade,
+                "Status": overall_status
             }])
 
             df_final = pd.concat([df_student, df_overall], ignore_index=True)
